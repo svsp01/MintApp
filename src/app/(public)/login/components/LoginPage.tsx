@@ -1,64 +1,56 @@
-'use client'
+'use client';
 
-import React, { useState ,FormEvent} from 'react';
+import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import AuthForm from './AuthForm'; 
+import AuthForm from './AuthForm';
 import userServices from '@/service/userServices';
+import { useDynamicToast } from '@/lib/toastUtils';
 
 const LoginPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    phoneNumber: '',
-    monthlyIncome: '',
-    profileImageUrl: '',
-    bio: '',
-    skills: '',
-    interests: ''
-  });
   const router = useRouter();
+  const { showToast } = useDynamicToast();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prevFormData => ({ ...prevFormData, [name]: value }));
-  };
-  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleLogin = async (data: any) => {
+    setIsLoading(true);
     try {
       await userServices.login({
-        email: formData.email,
-        password: formData.password,
+        email: data.email,
+        password: data.password,
       });
       router.push('/dashboard');
-    } catch (error) {
-      console.error('Login failed:', error);
+      showToast("Success", "You have successfully logged in.", "default");
+    } catch (error: any) {
+      showToast('Error', error.message, "destructive");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSignup = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSignup = async (data: any) => {
+    setIsLoading(true);
     try {
       await userServices.signup({
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phoneNumber: formData.phoneNumber,
-        monthlyIncome: Number(formData.monthlyIncome),
-        profileImageUrl: formData.profileImageUrl,
-        bio: formData.bio,
-        skills: formData.skills,
-        interests: formData.interests,
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phoneNumber: data.phoneNumber,
+        monthlyIncome: Number(data.monthlyIncome),
+        profileImageUrl: data.profileImageUrl,
+        bio: data.bio,
+        skills: data.skills,
+        interests: data.interests,
       });
       router.push('/dashboard');
-    } catch (error) {
-      console.error('Signup failed:', error);
+      showToast("Success", "User created successfully.", "default");
+    } catch (error: any) {
+      showToast('Error', error.message, "destructive");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -66,12 +58,11 @@ const LoginPage: React.FC = () => {
     <AuthForm
       isLogin={isLogin}
       step={step}
-      formData={formData}
-      handleChange={handleChange}
       handleLogin={handleLogin}
       handleSignup={handleSignup}
       setStep={setStep}
       setIsLogin={setIsLogin}
+      isLoading={isLoading}
     />
   );
 };

@@ -13,21 +13,23 @@ const login = async (userData: LoginUserData): Promise<LoginResponse> => {
     }));
 
     return data;
-  } catch (error) {
-    throw new Error('Login failed');
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Login failed, please try again.';
+    throw new Error(errorMessage);
   }
 };
 
 const signup = async (userData: SignupUserData): Promise<SignupResponse> => {
   try {
-    const response = await axiosInstance.post('/api/signIn', userData);
+    const response = await axiosInstance.post('/api/signUp', userData);
     return response.data;
-  } catch (error) {
-    throw new Error('Signup failed');
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Signup failed, please try again.';
+    throw new Error(errorMessage);
   }
 };
 
 export default {
-    login,
-    signup
-}
+  login,
+  signup,
+};

@@ -4,11 +4,9 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token');
   const url = request.nextUrl.clone();
 
-  // Define paths for static assets and API routes
   const staticAssetPaths = ['/static/', '/_next/', '/favicon.ico'];
   const apiRoutes = ['/api/'];
 
-  // Skip middleware for static assets and API routes
   if (staticAssetPaths.some(path => request.nextUrl.pathname.startsWith(path)) ||
       apiRoutes.some(path => request.nextUrl.pathname.startsWith(path))) {
     return NextResponse.next();

@@ -1,200 +1,176 @@
-import React, { ChangeEvent, FormEvent } from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { motion } from 'framer-motion';
+import { ArrowPathIcon, ArrowRightIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AuthFormProps {
   isLogin: boolean;
+  isLoading: boolean;
   step: number;
-  formData: any;
-  handleChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  handleLogin: (e: FormEvent<HTMLFormElement>) => void;
-  handleSignup: (e: FormEvent<HTMLFormElement>) => void;
+  handleLogin: (data: LoginFormData) => void;
+  handleSignup: (data: SignupFormData) => void;
   setStep: React.Dispatch<React.SetStateAction<number>>;
   setIsLogin: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+interface SignupFormData extends LoginFormData {
+  username: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  monthlyIncome: number;
+  profileImageUrl?: string;
+  bio?: string;
+  skills: string;
+  interests?: string;
+}
+
+type FormData = LoginFormData & Partial<SignupFormData>;
+
+const loginSchema = yup.object().shape({
+  email: yup.string().email('Invalid email').required('Email is required'),
+  password: yup.string().required('Password is required'),
+});
+
+const signupSchemas = [
+  yup.object().shape({
+    username: yup.string().required('Username is required'),
+    email: yup.string().email('Invalid email').required('Email is required'),
+    password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+  }),
+  yup.object().shape({
+    firstName: yup.string().required('First Name is required'),
+    lastName: yup.string().required('Last Name is required'),
+    phoneNumber: yup.string().matches(/^[0-9]+$/, 'Phone Number must be digits only').required('Phone Number is required'),
+  }),
+  yup.object().shape({
+    monthlyIncome: yup.number().typeError('Monthly Income must be a number').required('Monthly Income is required'),
+    profileImageUrl: yup.string().url('Invalid URL'),
+    bio: yup.string(),
+    skills: yup.string().required('Skills are required'),
+    interests: yup.string(),
+  }),
+];
+
 const AuthForm: React.FC<AuthFormProps> = ({
   isLogin,
+  isLoading,
   step,
-  formData,
-  handleChange,
   handleLogin,
   handleSignup,
   setStep,
-  setIsLogin
+  setIsLogin,
 }) => {
-  const renderLoginForm = () => (
-    <motion.form
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      onSubmit={handleLogin}
-      className="space-y-4"
-    >
-      <div className="relative">
-        <input
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="Email"
-          required
-          className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        />
-        <i className="fas fa-envelope absolute top-4 right-4 text-gray-400"></i>
-      </div>
-      <div className="relative">
-        <input
-          type="password"
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Password"
-          required
-          className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        />
-        <i className="fas fa-lock absolute top-4 right-4 text-gray-400"></i>
-      </div>
-      <button
-        type="submit"
-        className="w-full bg-blue-500 text-white p-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105"
-      >
-        Sign In
-      </button>
-    </motion.form>
+  const [showPassword, setShowPassword] = useState(false);
+
+  const schema:any = isLogin ? loginSchema : signupSchemas[step - 1];
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    trigger,
+    reset
+  } = useForm<FormData>({
+    resolver: yupResolver(schema),
+    mode: 'onBlur',
+  });
+  useEffect(() => {
+    reset();
+    setStep(1);
+  }, [isLogin, reset]);
+  const onSubmit = (data: FormData) => {
+    if (isLogin) {
+      handleLogin(data as LoginFormData);
+    } else if (step === 3) {
+      handleSignup(data as SignupFormData);
+    }
+  };
+
+  const handleNextStep = async () => {
+    const isValid = await trigger();
+    if (isValid) setStep(step + 1);
+  };
+
+  const renderField = (name: keyof FormData, type: string, placeholder: string) => (
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <div className="relative">
+          <Input
+            {...field}
+            type={type}
+            placeholder={placeholder}
+            className={`w-full ${errors[name] ? 'border-red-500' : ''}`}
+          />
+          {errors[name] && <p className="text-red-500 text-sm">{errors[name]?.message}</p>}
+        </div>
+      )}
+    />
   );
 
-  const renderSignupForm = () => (
-    <motion.form
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      onSubmit={handleSignup}
-      className="space-y-4"
-    >
-      {step === 1 && (
-        <>
-          <input
-            type="text"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            placeholder="Username"
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Email"
-            required
-            className="w-full p-4 border  border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Password"
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-        </>
-      )}
-      {step === 2 && (
-        <>
-          <input
-            type="text"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-            placeholder="First Name"
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-          <input
-            type="text"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            placeholder="Last Name"
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-          <input
-            type="tel"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            placeholder="Phone Number"
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-        </>
-      )}
-      {step === 3 && (
-        <>
-          <input
-            type="number"
-            name="monthlyIncome"
-            value={formData.monthlyIncome}
-            onChange={handleChange}
-            placeholder="Monthly Income"
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-          <input
-            type="url"
-            name="profileImageUrl"
-            value={formData.profileImageUrl}
-            onChange={handleChange}
-            placeholder="Profile Image URL"
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-          <textarea
-            name="bio"
-            value={formData.bio}
-            onChange={handleChange}
-            placeholder="Short bio"
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          ></textarea>
-          <input
-            type="text"
-            name="skills"
-            value={formData.skills}
-            onChange={handleChange}
-            placeholder="Skills"
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-          <input
-            type="text"
-            name="interests"
-            value={formData.interests}
-            onChange={handleChange}
-            placeholder="Interests"
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-        </>
-      )}
-      {step < 3 ? (
-        <button
-          type="button"
-          onClick={() => setStep(step + 1)}
-          className="w-full bg-blue-500 text-white p-4 rounded-lg hover:from-green-500 hover:to-blue-600 transition-all transform hover:scale-105"
-        >
-          Next
-        </button>
-      ) : (
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-4 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105"
-        >
-          Sign Up
-        </button>
-      )}
-    </motion.form>
+  const renderPasswordField = () => (
+    <div className="relative">
+      <Input
+        {...control.register('password')}
+        type={showPassword ? "text" : "password"}
+        placeholder="Password"
+        className={`w-full ${errors.password ? 'border-red-500' : ''}`}
+      />
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        className="absolute inset-y-0 right-3 flex items-center"
+      >
+        {showPassword ? <EyeIcon className="h-5 w-5" /> : <EyeSlashIcon className="h-5 w-5" />}
+      </button>
+      {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
+    </div>
   );
+
+  const loginFields = [
+    renderField('email', 'email', 'Email'),
+    renderPasswordField(),
+  ];
+
+  const signupFields = [
+    step === 1 && renderField('username', 'text', 'Username'),
+    step === 1 && renderField('email', 'email', 'Email'),
+    step === 1 && renderPasswordField(),
+    step === 2 && renderField('firstName', 'text', 'First Name'),
+    step === 2 && renderField('lastName', 'text', 'Last Name'),
+    step === 2 && renderField('phoneNumber', 'tel', 'Phone Number'),
+    step === 3 && renderField('monthlyIncome', 'number', 'Monthly Income'),
+    step === 3 && renderField('profileImageUrl', 'url', 'Profile Image URL'),
+    step === 3 && (
+      <Controller
+        name="bio"
+        control={control}
+        render={({ field }) => (
+          <Textarea
+            {...field}
+            placeholder="Short bio"
+            className={`w-full ${errors.bio ? 'border-red-500' : ''}`}
+          />
+        )}
+      />
+    ),
+    step === 3 && renderField('skills', 'text', 'Skills'),
+    step === 3 && renderField('interests', 'text', 'Interests'),
+  ].filter(Boolean);
 
   return (
     <div className="min-h-screen bg-blue-600 flex items-center justify-center p-4">
@@ -202,9 +178,30 @@ const AuthForm: React.FC<AuthFormProps> = ({
         <h2 className="text-3xl font-bold mb-6 text-center bg-clip-text text-transparent bg-blue-600">
           {isLogin ? 'Welcome Back!' : 'Join Us Today'}
         </h2>
-        {isLogin ? renderLoginForm() : renderSignupForm()}
+        <motion.form
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-4"
+        >
+          {isLogin ? loginFields : signupFields}
+          <Button
+            type={isLogin || step === 3 ? "submit" : "button"}
+            onClick={!isLogin && step < 3 ? handleNextStep : undefined}
+            className="w-full py-4 bg-blue-600 hover:bg-blue-500"
+            disabled={isLoading}
+          >
+            {isLoading ? <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" /> : (
+              <>
+                {isLogin ? 'Sign In' : (step < 3 ? 'Next' : 'Sign Up')}
+                {!isLogin && step < 3 && <ArrowRightIcon className="h-5 w-5 ml-2" />}
+              </>
+            )}
+          </Button>
+        </motion.form>
         <p className="mt-6 text-center text-gray-600">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}
+          {isLogin ? "Don't have an account?" : 'Already have an account?'}
           <button
             onClick={() => {
               setIsLogin(!isLogin);
