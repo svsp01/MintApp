@@ -82,15 +82,24 @@ const AuthForm: React.FC<AuthFormProps> = ({
     handleSubmit,
     formState: { errors },
     trigger,
-    reset
+    reset,
+    watch
   } = useForm<FormData>({
     resolver: yupResolver(schema),
     mode: 'onBlur',
   });
   useEffect(() => {
-    reset();
-    setStep(1);
-  }, [isLogin, reset]);
+    // Reset the form fields when toggling between login and signup
+    if (isLogin) {
+      reset(); // Clear form values when switching to login
+    } else {
+      reset({
+        email: watch('email') || '', // Watch the email value from login form
+      });
+    }
+    setStep(1); // Reset the step to the first step
+  }, [isLogin, reset, watch, setStep]);
+  
   const onSubmit = (data: FormData) => {
     if (isLogin) {
       handleLogin(data as LoginFormData);
@@ -101,7 +110,10 @@ const AuthForm: React.FC<AuthFormProps> = ({
 
   const handleNextStep = async () => {
     const isValid = await trigger();
-    if (isValid) setStep(step + 1);
+  if (isValid) {
+    setStep(step + 1);
+  }
+
   };
 
   const renderField = (name: keyof FormData, type: string, placeholder: string) => (
@@ -171,6 +183,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
     step === 3 && renderField('skills', 'text', 'Skills'),
     step === 3 && renderField('interests', 'text', 'Interests'),
   ].filter(Boolean);
+  
 
   return (
     <div className="min-h-screen bg-blue-600 flex items-center justify-center p-4">

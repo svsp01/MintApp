@@ -2,19 +2,15 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import handleLogout from '@/lib/authUtils';
+import Dashboard from './components/Dashboard';
 
 
 const Page = () => {
   const router = useRouter();
 
   return (
-    <div className='w-full bg-slate-400 flex py-10 justify-center items-center'>
-      <button
-        className='bg-white p-2 cursor-pointer text-black'
-        onClick={() => handleLogout(router)}
-      >
-        Logout
-      </button>
+    <div className='w-full bg-white flex  justify-center items-center'>
+      <Dashboard/>
     </div>
   );
 };
