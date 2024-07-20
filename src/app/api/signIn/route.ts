@@ -1,13 +1,13 @@
 import dbConnect from "@/DataBase/dbConnect";
-import UserModal from "@/models/UserModal";
+import UserModel from "@/models/UserModal";
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt, { compare } from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
 
 export async function GET() {
   try {
     await dbConnect();
-    const data = await UserModal.find({});
+    const data = await UserModel.find({});
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
     const body = await request.json();
+
     if (body.username) {
       const {
         username,
@@ -32,8 +33,12 @@ export async function POST(request: NextRequest) {
         profileImageUrl,
         monthlyIncome,
         bio,
+        skills, 
+        interests
       } = body;
-      const existingUser = await UserModal.findOne({ email });
+
+      // Check for existing user
+      const existingUser = await UserModel.findOne({ email });
 
       if (existingUser) {
         return NextResponse.json(
@@ -42,7 +47,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Split and clean up skills and interests
+      const cleanedSkills = skills ? skills.split(',').map((skill:string) => skill.trim()).filter((skill:string) => skill) : [];
+      const cleanedInterests = interests ? interests.split(',').map((interest:string) => interest.trim()).filter((interest:string) => interest) : [];
+
+      // Create new user
       const newUser = {
         username,
         email,
@@ -55,16 +67,20 @@ export async function POST(request: NextRequest) {
         bio,
         createdAt: new Date(),
         lastLogin: new Date(),
+        skills: cleanedSkills,
+        interests: cleanedInterests
       };
-      const result = await UserModal.create(newUser);
+
+      const result = await UserModel.create(newUser);
+
 
       return NextResponse.json(
-        { message: "User created successfully", userId: result.insertedId },
+        { message: "User created successfully", userId: result._id },
         { status: 201 }
       );
     } else {
       const { email, password } = body;
-      const user = await UserModal.findOne({ email });
+      const user = await UserModel.findOne({ email });
 
       if (!user) {
         return NextResponse.json(
@@ -73,7 +89,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const isPasswordValid = await compare(password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
         return NextResponse.json(
@@ -83,31 +99,38 @@ export async function POST(request: NextRequest) {
       }
 
       const token = sign(
-        { userId: user._id, email: user.email, username: user.name },
+        { userId: user._id, email: user.email, username: user.username },
         `${process.env.JWT_SECRET}`,
         {
           expiresIn: "1h",
         }
       );
+
       const response = NextResponse.json({
         message: "Login successful",
         data: {
           userId: user._id,
-          profileImageUrl: user?.profileImageUrl,
-          monthlyIncome: user?.monthlyIncome,
+          profileImageUrl: user.profileImageUrl,
+          monthlyIncome: user.monthlyIncome,
           email: user.email,
-          username: user.name,
+          username: user.username,
           token: token,
         },
       });
+
       response.cookies.set("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: 60 * 60 * 1000, 
       });
 
       return response;
     }
-  } catch (error) {}
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "An error occurred" },
+      { status: 500 }
+    );
+  }
 }

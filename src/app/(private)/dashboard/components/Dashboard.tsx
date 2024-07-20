@@ -82,7 +82,7 @@ function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Transaction History */}
+
         <Card className="col-span-2  row-span-2">
           <CardHeader>
             <CardTitle>Transaction History</CardTitle>
@@ -100,7 +100,7 @@ function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Savings Goal */}
+
         <Card>
           <CardHeader>
             <CardTitle>Savings Goal</CardTitle>
@@ -126,7 +126,6 @@ function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Investment Performance */}
         <Card className="col-span-2">
           <CardHeader>
             <CardTitle>Investment Performance</CardTitle>
@@ -144,7 +143,6 @@ function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* AI Financial Assistant */}
         <Card className="col-span-2">
           <CardHeader>
             <CardTitle>AI Financial Assistant</CardTitle>
