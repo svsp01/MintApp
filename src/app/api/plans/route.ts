@@ -4,7 +4,6 @@ import { verifyToken } from "@/middle/verifyToken";
 import PlanModel from "@/models/PlanModel"; 
 import UserModal from "@/models/UserModal";
 import { NextRequest, NextResponse } from "next/server";
-
 export async function GET(request: NextRequest) {
     try {
       await dbConnect();
@@ -14,60 +13,79 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
   
-      // Fetch all plans for the user
-      const plans = await PlanModel.find({ userID: userId });
+      // Extract month and year from query parameters
+      const url = new URL(request.url);
+      const month = parseInt(url.searchParams.get('month') || '0');
+      const year = parseInt(url.searchParams.get('year') || '0');
+  
+      if (!month || !year) {
+        return NextResponse.json({ error: "Invalid month or year" }, { status: 400 });
+      }
+  
+      // Fetch all plans for the user within the specified month and year
+      const plans = await PlanModel.find({
+        userID: userId,
+        date: {
+          $gte: new Date(year, month - 1, 1),
+          $lt: new Date(year, month, 1),
+        },
+      });
   
       // Fetch user income
-      const income = await UserModal.findOne({ userID: userId }); 
+      const income = await UserModal.findOne({ _id: userId });
   
       // Aggregate plans data
       const aggregatedPlans = plans.map(plan => ({
         category: plan.plan.category,
         emoji: plan.plan.emoji,
         defaultPrice: plan.plan.defaultPrice,
-        date: plan.date
+        date: new Date(plan.date).toISOString() 
+
       }));
   
       return NextResponse.json({
         plans: aggregatedPlans,
-        income: income ? income.monthlyIncome : 0 
+        income: income ? income.monthlyIncome : 0
       }, { status: 200 });
     } catch (error) {
       return NextResponse.json({ error: "Failed to retrieve plans and income" }, { status: 500 });
     }
   }
   
-export async function POST(request: NextRequest) {
+  export async function POST(request: NextRequest) {
     try {
-      await dbConnect();
-      const body = await request.json();
-      const userId = await verifyToken(request);
-  
-      if (!userId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-  
-      const { year, month, week, income, budget, savings } = body;
-  
-      const planData = {
-        userId,
-        year,
-        month,
-        week,
-        income,
-        budget,
-        savings
-      };
-  
-      const result = await PlanModel.findOneAndUpdate(
-        { userId, year, month, week },
-        planData,
-        { upsert: true, new: true }
-      );
-  
-      return NextResponse.json({ message: "Plan saved successfully", plan: result }, { status: 200 });
+        await dbConnect();
+        const body = await request.json();
+        const userId = await verifyToken(request);
+
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { category, emoji, defaultPrice, date } = body;
+
+
+        const newPlan = {
+            userID: userId,
+            plan: {
+                category,
+                emoji,
+                defaultPrice
+            },
+            date: new Date(date) 
+        };
+
+        const result = await PlanModel.create(newPlan);
+
+        return NextResponse.json(
+            { message: "Plan created successfully", plan: result },
+            { status: 201 }
+        );
     } catch (error) {
-      return NextResponse.json({ error: "Failed to save plan" }, { status: 500 });
+        console.error('Error creating plan:', error);
+        return NextResponse.json(
+            { error: "Failed to create plan" },
+            { status: 500 }
+        );
     }
-  }
-  
+}

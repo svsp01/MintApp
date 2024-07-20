@@ -1,14 +1,22 @@
 'use client'
-import { useEffect, useState } from 'react';
-import WeekSelector from './components/WeekSelector'; // New component for week selection
-import CategorySelector from './components/CategorySelector'; // New component for category selection
+import React, { useEffect, useState, useMemo } from 'react';
 import MonthYearPicker from '../transactions/components/MonthYearPicker';
+import WeekAndCategorySelector from './components/WeekAndCategorySelector';
+import { WalletIcon, CalendarIcon, BanknotesIcon } from '@heroicons/react/24/solid';
 
 interface Plan {
+  id: string;
   category: string;
   emoji: string;
   defaultPrice: number;
   date: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  emoji: string;
+  defaultPrice: number;
 }
 
 interface MonthlyPlannerData {
@@ -17,23 +25,25 @@ interface MonthlyPlannerData {
 }
 
 export default function MonthlyPlannerPage() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedWeek, setSelectedWeek] = useState<number>(0); // State to manage selected week
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [categories, setCategories] = useState<any[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [income, setIncome] = useState<number>(0);
+  const [plannerData, setPlannerData] = useState<any>({
+    plans: [],
+    income: 0
+  });
 
   useEffect(() => {
     const fetchPlannerData = async () => {
       try {
-        const response = await fetch('/api/plans');
-        const data: MonthlyPlannerData = await response.json();
-        setPlans(data.plans);
-        setIncome(data.income);
+        const month = currentDate.getMonth() + 1; 
+        const year = currentDate.getFullYear();
+  
+        const response = await fetch(`/api/plans?month=${month}&year=${year}`);
+          const data: MonthlyPlannerData = await response.json();
+        setPlannerData(data);
 
-        // Optionally, fetch categories if needed for other operations
         const categoriesResponse = await fetch('/api/category');
-        const categoriesData = await categoriesResponse.json();
+        const categoriesData: Category[] = await categoriesResponse.json();
         setCategories(categoriesData);
       } catch (error) {
         console.error('Error fetching planner data:', error);
@@ -41,54 +51,84 @@ export default function MonthlyPlannerPage() {
     };
 
     fetchPlannerData();
-  }, []);
+  }, [currentDate]);
 
-  const handleWeekChange = (week: number) => {
-    setSelectedWeek(week);
-  };
+  const { totalBudget, savings } = useMemo(() => {
+    const totalExpenses = plannerData.plans.reduce((sum: any, plan: { defaultPrice: any; }) => sum + plan.defaultPrice, 0);
+    const totalBudget = totalExpenses;
+    const savings = plannerData.income - totalExpenses;
+    return { totalBudget, savings };
+  }, [plannerData]);
 
-  const handleSavePlan = async (plan: Plan) => {
+  const handleSavePlan = async (plan: Omit<Plan, 'id'>) => {
     try {
-      await fetch('/api/plans', {
+      const response = await fetch('/api/plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...plan, userID: 'YOUR_USER_ID' }) // Adjust userID accordingly
+        body: JSON.stringify({ ...plan })
       });
-
-      // Update local state
-      setPlans(prevPlans => [...prevPlans, plan]);
+      const savedPlan: Plan = await response.json();
+      setPlannerData((prevData:any) => ({
+        ...prevData,
+        plans: [...prevData.plans, savedPlan]
+      }));
     } catch (error) {
       console.error('Error saving plan:', error);
     }
   };
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-4 bg-gray-50 rounded-lg min-h-screen">
-      <div className="mb-4 z-10">
+    <div className="container mx-auto px-4 py-8 bg-white min-h-screen">
+      <div className="mb-8">
         <MonthYearPicker currentDate={currentDate} onDateChange={setCurrentDate} />
       </div>
-      <WeekSelector currentDate={currentDate} onWeekChange={handleWeekChange} />
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold mb-2">Monthly Income</h2>
-        <div className="text-lg mb-4">{`$${income.toFixed(2)}`}</div>
-        <h2 className="text-xl font-semibold mb-2">Budget for Selected Week</h2>
-        <CategorySelector
-          categories={categories}
-          onSavePlan={handleSavePlan}
-        />
-        {/* Optionally, render existing plans */}
-        <h2 className="text-xl font-semibold mb-2">Existing Plans</h2>
-        <div>
-          {plans.map((plan, index) => (
-            <div key={index} className="mb-2 p-2 border rounded-md">
-              <div className="font-semibold">{plan.category}</div>
-              <div>{plan.emoji}</div>
-              <div>{`$${plan.defaultPrice.toFixed(2)}`}</div>
-              <div>{plan.date}</div>
-            </div>
-          ))}
-        </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <InfoCard icon={<WalletIcon className="w-6 h-6" />} title="Income" value={plannerData.income} />
+        <InfoCard icon={<CalendarIcon className="w-6 h-6" />} title="Total Budget" value={totalBudget} />
+        <InfoCard icon={<BanknotesIcon className="w-6 h-6" />} title="Savings" value={savings} />
       </div>
+
+      <WeekAndCategorySelector
+        currentDate={currentDate}
+        categories={categories}
+        plans={plannerData.plans}
+        onSavePlan={handleSavePlan}
+      />
     </div>
   );
+}
+interface InfoCardProps {
+    icon: React.ReactNode;
+    title: string;
+    value: number;
+}
+
+function InfoCard({ icon, title, value }: InfoCardProps) {
+    return (
+        <div className="bg-blue-600 text-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center mb-2">
+                {icon}
+                <h3 className="text-lg font-semibold ml-2">{title}</h3>
+            </div>
+            <p className="text-2xl font-bold">${value.toFixed(2)}</p>
+        </div>
+    );
+}
+
+interface PlanCardProps {
+    plan: Plan;
+}
+
+function PlanCard({ plan }: PlanCardProps) {
+    return (
+        <div className="bg-gray-100 p-4 rounded-lg shadow">
+            <div className="flex items-center justify-between mb-2">
+                <span className="text-2xl">{plan.emoji}</span>
+                <span className="font-semibold text-blue-600">{plan.category}</span>
+            </div>
+            <p className="text-xl font-bold mb-1">${plan.defaultPrice.toFixed(2)}</p>
+            <p className="text-sm text-gray-600">{plan.date}</p>
+        </div>
+    );
 }
