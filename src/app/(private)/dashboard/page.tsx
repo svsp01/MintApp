@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Dashboard from './components/Dashboard';
+import SkeletonLoader from './components/SkeletonLoader';
 import { DashboardData } from '@/types/dashboard';
 
 const Page = () => {
@@ -27,7 +28,7 @@ const Page = () => {
     fetchData();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <SkeletonLoader />;
   if (error) return <div>{error}</div>;
   if (!data) return <div>No data available</div>;
 

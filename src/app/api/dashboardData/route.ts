@@ -40,26 +40,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch transactions
+    // Fetch user data to get monthly income and savings goal
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const monthlyIncome = user.monthlyIncome || 0;
+    const savingsGoal = user.savingsGoal || 10000;
+
     const transactions: Transaction[] = await TransactionModel.find({ userId });
 
-    // Dummy data
-    let monthlyIncome = 10000;
-    try {
-      const user = await UserModel.findById(userId);
-      if (!user) {
-        return NextResponse.json(
-          { success: false, error: 'User not found' },
-          { status: 404 }
-        );
-      }
-      monthlyIncome = user.monthlyIncome
-    } catch (error) {
-      
-    }
-    const savings = 1500;
-    const savingsGoal = 10000;
-    const currentSavings = 7500;
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; 
+    const currentYear = now.getFullYear();
+
+    const currentMonthTransactions = transactions.filter(transaction => {
+      const transactionDate = new Date(transaction.date);
+      return transactionDate.getFullYear() === currentYear && transactionDate.getMonth() + 1 === currentMonth;
+    });
+
+    const totalExpensesCurrentMonth = currentMonthTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    const currentSavings = monthlyIncome - totalExpensesCurrentMonth;
+
+    const totalExpenses = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    
+    const earliestTransactionDate = transactions.length > 0 ? new Date(transactions[0].date) : now;
+    const monthsPassed = (currentYear - earliestTransactionDate.getFullYear()) * 12 + (currentMonth - earliestTransactionDate.getMonth());
+    const totalIncome = monthlyIncome * (monthsPassed); 
+
+    const totalSavings = totalIncome - totalExpenses;
 
     const transactionHistory = transactions.map(transaction => ({
       date: transaction.date,
@@ -67,28 +77,18 @@ export async function GET(request: NextRequest) {
       amount: transaction.amount,
     }));
 
+
+
     // Fetch job data
     let jobData: JobData[] = [];
     try {
-      const user = await UserModel.findById(userId);
-      if (!user) {
-        return NextResponse.json(
-          { success: false, error: 'User not found' },
-          { status: 404 }
-        );
-      }
-
       const keywords = [...(user.interests || []), ...(user.skills || [])];
       if (keywords.length === 0) {
-        return NextResponse.json(
-          { success: false, error: 'No interests or skills found for user' },
-          { status: 400 }
-        );
+        return NextResponse.json({ success: false, error: 'No interests or skills found for user' }, { status: 400 });
       }
 
       const uniqueKeywords = Array.from(new Set(keywords));
       const jobPromises = uniqueKeywords.map(async (keyword) => {
-        // Fetch jobs related to each keyword
         return JobModel.find({ keywords: keyword }).sort('-postedAt').exec();
       });
 
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
 
     const response: DashboardData = {
       monthlyIncome,
-      savings,
+      savings: totalSavings,
       transactionHistory,
       savingsGoal,
       currentSavings,

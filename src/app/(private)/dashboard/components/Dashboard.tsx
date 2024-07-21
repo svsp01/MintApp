@@ -1,3 +1,4 @@
+'use client'
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,9 @@ import {
   LineChart, Line, ResponsiveContainer
 } from 'recharts';
 import { DashboardData } from '@/types/dashboard';
+import { useRouter } from 'next/navigation';
+import AIFinancialAssistant from './AIFinancialAssistant';
+
 
 interface DashboardProps {
   data: DashboardData;
@@ -24,7 +28,9 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     jobData,
     aiChatHistory
   } = data;
+  const navigate = useRouter();
 
+  
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -98,13 +104,38 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
           </CardContent>
         </Card>
 
-        {/* AI Financial Assistant */}
+        
+
+        {/* Job Opportunities */}
         <Card className="col-span-2">
           <CardHeader>
-            <CardTitle>AI Financial Assistant</CardTitle>
+            <CardTitle>Job Opportunities <span className="text-sm text-gray-600">({jobData.length} jobs)</span></CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[200px] mb-4 p-4 border rounded">
+            <ScrollArea className="h-[200px]">
+              {jobData.length > 0 ? (
+                jobData.map((job, index) => (
+                  <div key={index} className="mb-4 p-4 border border-gray-200 rounded-lg shadow-md hover:bg-gray-50 transition-colors">
+                    <h3 className="text-lg font-semibold mb-1">{job.title}</h3>
+                    <p className="text-gray-600 mb-1">{job.company}</p>
+                    <p className="text-gray-600 mb-1">{job.salary}</p>
+                    <p className="text-gray-600 mb-2">{job.location}</p>
+                    <Button className="w-full text-white bg-blue-500 hover:bg-blue-600" onClick={() => navigate.push('/dashboard/opportunities')}>
+                    View Details
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600">No job opportunities available at the moment.</p>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* AI Financial Assistant */}
+        <Card className="col-span-2">
+          
+            {/* <ScrollArea className="h-[200px] mb-4 p-4 border rounded">
               {aiChatHistory.map((chat:any, index:any) => (
                 <p key={index} className="mb-2">
                   <span className="font-bold">{chat.user}:</span> {chat.message}
@@ -114,27 +145,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
             <div className="flex">
               <Input placeholder="Ask a financial question..." className="flex-grow mr-2" />
               <Button>Send</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Job Opportunities */}
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle>Job Opportunities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[200px]">
-              {jobData.map((job, index) => (
-                <div key={index} className="mb-4">
-                  <h3 className="text-lg font-semibold">{job.title}</h3>
-                  <p className="text-gray-600">{job.company}</p>
-                  <p className="text-gray-600">{job.salary}</p>
-                  <p className="text-gray-600">{job.location}</p>
-                </div>
-              ))}
-            </ScrollArea>
-          </CardContent>
+            </div> */}
+            <AIFinancialAssistant/>
         </Card>
       </div>
     </motion.div>
