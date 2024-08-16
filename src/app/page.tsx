@@ -533,7 +533,7 @@ const HeroPage = () => {
                     </div>
                   </div>
                   <div className="mt-4 text-gray-500">
-                    "{testimonial.content}"
+                    &quot;{testimonial.content}&quot; 
                   </div>
                 </div>
               </div>
