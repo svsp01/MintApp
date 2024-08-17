@@ -35,6 +35,7 @@
     "yup": "^1.4.0"
   },
   "devDependencies": {
+    "@gradio/client": "^1.5.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20",

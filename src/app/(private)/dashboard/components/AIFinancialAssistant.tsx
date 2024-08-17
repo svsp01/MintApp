@@ -46,8 +46,9 @@ const AIFinancialAssistant: React.FC = () => {
         throw new Error('Failed to send message');
       }
 
-      const { reply } = await response.json();
-      const aiReply: ChatMessage = { user: 'Mint', message: reply };
+      const { result } = await response.json();
+      console.log(result.data[0])
+      const aiReply: ChatMessage = { user: 'Mint', message: result.data[0] };
       setAiChatHistory(prev => [...prev, aiReply]);
     } catch (error) {
       console.error('Error sending message:', error);
