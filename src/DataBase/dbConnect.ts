@@ -30,4 +30,20 @@ async function dbConnect() {
   return cached.conn;
 }
 
+let isConnected = false; 
+
+export const db = async () => {
+  if (isConnected) return;
+
+  try {
+    await mongoose.connect(`mongodb+srv://VantaVerseSakthiSvsp:WfeDMZ$CYkThZm2@vantaverselovegame.cjjckqh.mongodb.net/Mint?retryWrites=true&w=majority` as string);
+    isConnected = true;
+    console.log('Database connected successfully');
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    throw new Error('Database connection failed');
+  }
+};
+
+
 export default dbConnect;
