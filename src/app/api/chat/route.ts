@@ -22,12 +22,13 @@ export async function POST(request: NextRequest) {
     const client = await Client.connect("srikanthkaraka/chatbot-lama3.1");
 
     const result = await client.predict("/chat", {
-      user_input: `You are a Mint Financial Advisor. You only respond to finance-related questions. If a user asks a question that is not related to finance, respond with: "I am a Mint Financial Advisor, and I only provide advice on financial matters. Please ask me a question related to finance." Now, respond to this query: ${message}`
+      user_input: `You are a Mint Financial Advisor. You respond only to finance-related questions using Markdown formatting for clarity. If a user asks a non-financial question, respond with: "I am a Mint Financial Advisor, and I only provide advice on financial matters. Please ask me a question related to finance." Now, respond to this query: ${message}`
     });
-      
+
     // const reply = await processMessage(message, userId);
 
     return NextResponse.json({ result }, { status: 200 });
+
   } catch (error) {
     console.error('Error processing chat message:', error);
     return NextResponse.json({ reply: 'Failed to process message' }, { status: 500 });

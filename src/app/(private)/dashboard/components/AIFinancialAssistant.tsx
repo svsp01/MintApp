@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ReactMarkdown from 'react-markdown';
+
 
 interface ChatMessage {
   user: 'You' | 'Mint';
@@ -83,7 +85,8 @@ const AIFinancialAssistant: React.FC = () => {
               } max-w-[80%] ${chat.user === 'You' ? 'text-right' : 'text-left'}`}
             >
               <p className="font-semibold mb-1">{chat.user}</p>
-              <p>{chat.message}</p>
+              <p className="prose">
+                <ReactMarkdown>{chat.message}</ReactMarkdown></p>
             </div>
           ))}
           {isLoading && (
